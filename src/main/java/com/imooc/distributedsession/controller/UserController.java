@@ -1,8 +1,12 @@
 package com.imooc.distributedsession.controller;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpSession;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author: bizy
@@ -11,6 +15,9 @@ import javax.servlet.http.HttpSession;
 @RequestMapping("/user")
 @RestController
 public class UserController {
+
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
 
     @GetMapping("/login")
     public String login(@RequestParam String username,
@@ -24,5 +31,19 @@ public class UserController {
     @GetMapping("/info")
     public String info(HttpSession session) {
         return "当前登录的是:" +  session.getAttribute("login_user");
+    }
+
+    @GetMapping("/loginWithToken")
+    public String loginWithToken(@RequestParam String username,
+                        @RequestParam String password) {
+        //账号密码正确
+        String key = "token_" + UUID.randomUUID().toString();
+        stringRedisTemplate.opsForValue().set(key,username,3600, TimeUnit.SECONDS);
+        return key;
+    }
+
+    @GetMapping("/infoWithToken")
+    public String info(@RequestParam String token) {
+        return "当前登录的是:" +  stringRedisTemplate.opsForValue().get(token);
     }
 }
