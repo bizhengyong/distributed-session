@@ -3,12 +3,15 @@ package com.imooc.distributedsession.controller;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.algorithms.Algorithm;
+import com.auth0.jwt.exceptions.JWTDecodeException;
+import com.auth0.jwt.exceptions.TokenExpiredException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpSession;
+import java.util.Date;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -60,6 +63,8 @@ public class UserController {
         String token = JWT.create()
 //                .withIssuer("auth0")
                 .withClaim("login_user",username)
+                .withClaim("id",1)
+                .withExpiresAt(new Date(System.currentTimeMillis() + 3600000)) //设置过期时间
                 .sign(algorithm);
         return token;
     }
@@ -70,7 +75,13 @@ public class UserController {
         JWTVerifier verifier = JWT.require(algorithm)
 //                .withIssuer("auth0")
                 .build(); //Reusable verifier instance
-        DecodedJWT jwt = verifier.verify(token);
-        return jwt.getClaim("login_user").asString();
+        try {
+            DecodedJWT jwt = verifier.verify(token);
+            return jwt.getClaim("login_user").asString();
+        }catch (TokenExpiredException e){
+            return "token过期";
+        }catch (JWTDecodeException e) {
+            return "解码失败，token错误";
+        }
     }
 }
