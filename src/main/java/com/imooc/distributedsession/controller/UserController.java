@@ -15,6 +15,9 @@ import java.util.Date;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import static com.imooc.distributedsession.LoginIntercepter.JWT_KEY;
+import static com.imooc.distributedsession.LoginIntercepter.UID;
+
 /**
  * @author: bizy
  * @date: 2020/11/19 19:34
@@ -22,8 +25,6 @@ import java.util.concurrent.TimeUnit;
 @RequestMapping("/user")
 @RestController
 public class UserController {
-
-    private static final String JWT_KEY = "imooc";
 
     @Autowired
     private StringRedisTemplate stringRedisTemplate;
@@ -52,7 +53,7 @@ public class UserController {
     }
 
     @GetMapping("/infoWithToken")
-    public String info(@RequestParam String token) {
+    public String info(@RequestHeader String token) {
         return "当前登录的是:" +  stringRedisTemplate.opsForValue().get(token);
     }
 
@@ -63,25 +64,20 @@ public class UserController {
         String token = JWT.create()
 //                .withIssuer("auth0")
                 .withClaim("login_user",username)
-                .withClaim("id",1)
+                .withClaim(UID,1)
                 .withExpiresAt(new Date(System.currentTimeMillis() + 3600000)) //设置过期时间
                 .sign(algorithm);
         return token;
     }
 
     @GetMapping("/infoWithJwt")
-    public String infoWithJwt(@RequestParam String token){
-        Algorithm algorithm = Algorithm.HMAC256(JWT_KEY);
-        JWTVerifier verifier = JWT.require(algorithm)
-//                .withIssuer("auth0")
-                .build(); //Reusable verifier instance
-        try {
-            DecodedJWT jwt = verifier.verify(token);
-            return jwt.getClaim("login_user").asString();
-        }catch (TokenExpiredException e){
-            return "token过期";
-        }catch (JWTDecodeException e) {
-            return "解码失败，token错误";
-        }
+    public String infoWithJwt(@RequestAttribute String login_user){
+        return login_user;
+    }
+
+    //获取地址
+    @GetMapping("/address")
+    public Integer address(@RequestAttribute Integer uid){
+        return uid;
     }
 }
